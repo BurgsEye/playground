@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fafbfc;
+  --foreground: #172b4d;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Custom scrollbar styles for JIRA-like appearance */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f4f5f7;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dfe1e6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c1c7d0;
+}
+
+/* JIRA-like components */
+@layer components {
+  .jira-card {
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .jira-button-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md transition-colors;
+  }
+  
+  .jira-button-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-md transition-colors;
+  }
+  
+  .jira-input {
+    @apply border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors;
+  }
+  
+  .jira-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .jira-badge-blue {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .jira-badge-green {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .jira-badge-yellow {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  
+  .jira-badge-red {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .jira-badge-gray {
+    @apply bg-gray-100 text-gray-800;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
