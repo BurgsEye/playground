@@ -1,92 +1,136 @@
-# Supabase Playground
+# JIRA Ticket Clustering System
 
-A learning project for exploring Supabase features including Edge Functions and web applications.
+A production-ready application for geographic clustering of JIRA tickets using Supabase Edge Functions and Next.js. Automatically groups tickets by location and priority to optimize engineer assignment and route planning.
+
+## 🌐 Live Demo
+**Production App**: https://web-ixdehb4p6-tonys-projects-ac038d67.vercel.app
+
+## 🚀 Quick Deploy
+This app is configured for automatic deployment:
+1. **Fork this repository**
+2. **Connect to Vercel** - automatic builds on every push
+3. **Deploy Edge Functions** - `supabase functions deploy auto-cluster`
+4. **Done!** - Your app is live with global CDN
+
+📋 **For detailed deployment instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
+
+## 🎯 Features
+
+- **Auto-Clustering**: Intelligent geographic grouping with priority weighting
+- **Manual Clustering**: Interactive map-based ticket selection
+- **Real-time Maps**: React-Leaflet integration with UK-wide coverage
+- **Edge Computing**: Supabase Edge Functions for global performance
+- **Modern UI**: Next.js 14 with Tailwind CSS
+- **Production Ready**: Deployed on Vercel with auto-deploy from GitHub
 
 ## Project Structure
 
 ```
 playground/
-├── supabase/                 # Supabase configuration and functions
+├── supabase/                 # Backend services
 │   ├── functions/           # Edge Functions
-│   │   ├── _shared/         # Shared utilities
-│   │   ├── hello-world/     # Example function
-│   │   └── web-scraper/     # Scraper function example
-│   ├── migrations/          # Database migrations
+│   │   ├── auto-cluster/    # Clustering algorithm
+│   │   ├── find-nearby-tickets/ # Geographic search
+│   │   └── _shared/         # Shared utilities
 │   └── config.toml         # Supabase configuration
-├── web/                     # Next.js web application
-│   ├── src/                # Source code
-│   └── package.json        # Dependencies
-└── scripts/                # Utility scripts
+├── web/                     # Next.js frontend
+│   ├── src/
+│   │   ├── app/            # App router pages
+│   │   ├── components/     # React components
+│   │   ├── data/           # Mock data (250 UK tickets)
+│   │   └── utils/          # Utilities & Supabase client
+│   └── package.json
+├── DEPLOYMENT_GUIDE.md      # Comprehensive deployment docs
+└── vercel.json             # Deployment configuration
 ```
 
 ## Getting Started
 
-### 1. Install Supabase CLI
+### 1. Install Dependencies
 
 ```bash
-npm install -g supabase
+# Install Supabase CLI
+brew install supabase/tap/supabase
+
+# Install Vercel CLI (optional)
+npm install -g vercel
 ```
 
-### 2. Initialize and Start Supabase
+### 2. Start Local Development
 
 ```bash
-# Initialize Supabase (if not already done)
-supabase init
-
-# Start local development environment
+# Start Supabase backend
 supabase start
-```
 
-### 3. Set up Environment Variables
-
-```bash
-cp .env.example .env.local
-```
-
-For local development, the default values in `.env.example` should work.
-
-### 4. Install Web App Dependencies
-
-```bash
+# Install and run frontend
 cd web
 npm install
-```
-
-### 5. Start the Web Application
-
-```bash
-cd web
 npm run dev
 ```
 
 Visit `http://localhost:3000` to see your app!
 
-## Edge Functions
-
-### Testing Functions Locally
+### 3. Deploy to Production
 
 ```bash
-# Test hello-world function
-curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/hello-world' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-  --header 'Content-Type: application/json' \
-  --data '{"name":"World"}'
+# Deploy Edge Functions
+supabase functions deploy auto-cluster
+supabase functions deploy find-nearby-tickets
 
-# Test web-scraper function  
-curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/web-scraper' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-  --header 'Content-Type: application/json' \
-  --data '{"url":"https://example.com"}'
+# Deploy Frontend (one-time setup)
+vercel --prod
+
+# Or connect GitHub for auto-deploy (recommended)
+# See DEPLOYMENT_GUIDE.md for details
 ```
 
-### Deploying Functions
+## 🚀 Deployment
+
+### Current Production Status
+- **Branch**: `main` (auto-deploy enabled)
+- **Frontend**: Vercel hosting with global CDN
+- **Backend**: Supabase Edge Functions deployed
+- **Domain**: https://web-ixdehb4p6-tonys-projects-ac038d67.vercel.app
+
+### Auto-Deploy Workflow
+1. Make changes locally
+2. Commit: `git add -A && git commit -m "Description"`
+3. Push: `git push origin main`
+4. Vercel automatically builds and deploys (~30 seconds)
+
+### Manual Deployment
+```bash
+# Deploy Edge Functions
+supabase functions deploy auto-cluster
+
+# Deploy Frontend
+vercel --prod
+```
+
+📋 **For complete deployment instructions, troubleshooting, and production setup, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
+
+## 🧪 Testing Edge Functions
 
 ```bash
-# Deploy all functions
-supabase functions deploy
+# Test auto-clustering locally
+curl -X POST http://localhost:54321/functions/v1/auto-cluster \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tickets": [],
+    "radius_km": 20,
+    "cluster_size": 3,
+    "prioritize_high_priority": true
+  }'
 
-# Deploy specific function
-supabase functions deploy hello-world
+# Test nearby tickets search
+curl -X POST http://localhost:54321/functions/v1/find-nearby-tickets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "center_lat": 51.5074,
+    "center_lng": -0.1278,
+    "radius_km": 10,
+    "tickets": []
+  }'
 ```
 
 ## Database
@@ -121,16 +165,43 @@ supabase db reset
 supabase gen types typescript --local > web/src/types/supabase.ts
 ```
 
-## Next Steps
+## 🎯 Next Steps & Roadmap
 
-1. **Create a Supabase Project**: Visit [supabase.com](https://supabase.com) and create a new project
-2. **Update Environment Variables**: Add your project URL and keys to `.env.local`
-3. **Deploy Functions**: Use `supabase functions deploy` to deploy your edge functions
-4. **Build Your App**: Start building your web application with authentication, database, and real-time features
-5. **Explore Features**: Try out authentication, storage, real-time subscriptions, and more!
+### Phase 1: JIRA Integration (In Progress)
+- [ ] **CSV/JSON Import**: Manual ticket import for testing
+- [ ] **JIRA REST API**: Pull tickets from JIRA instances  
+- [ ] **Webhook Integration**: Real-time ticket updates
+- [ ] **User Authentication**: Role-based access control
 
-## Resources
+### Phase 2: Advanced Features
+- [ ] **Route Optimization**: TSP solver for engineer routes
+- [ ] **Time Constraints**: Schedule-based clustering
+- [ ] **Mobile App**: React Native companion app
+- [ ] **Analytics Dashboard**: Performance metrics and insights
 
+### Phase 3: Enterprise Features  
+- [ ] **Multi-tenant**: Support multiple organizations
+- [ ] **Custom Fields**: Configurable ticket attributes
+- [ ] **API Integration**: Third-party service connections
+- [ ] **Advanced Reporting**: Export and scheduling
+
+## 📚 Resources & Documentation
+
+### Project Documentation
+- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Complete deployment instructions
+- [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) - Detailed project context and decisions
+
+### Technical Resources
 - [Supabase Documentation](https://supabase.com/docs)
 - [Edge Functions Guide](https://supabase.com/docs/guides/functions)
-- [Next.js + Supabase Tutorial](https://supabase.com/docs/guides/getting-started/tutorials/with-nextjs)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Vercel Deployment Guide](https://vercel.com/docs)
+
+### Live Examples
+- **Production App**: https://web-ixdehb4p6-tonys-projects-ac038d67.vercel.app
+- **Auto-Clustering**: https://web-ixdehb4p6-tonys-projects-ac038d67.vercel.app/auto-clustering
+- **Manual Clustering**: https://web-ixdehb4p6-tonys-projects-ac038d67.vercel.app/manual-clustering
+
+---
+
+*Built with ❤️ using Supabase, Next.js, and Vercel*
