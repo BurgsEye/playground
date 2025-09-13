@@ -60,6 +60,14 @@ serve(async (req) => {
         return await handleTestConnection(req);
       case 'tickets':
         return await handleGetTickets(req);
+      case 'get-tickets':
+        return await handleGetTickets(req);
+      case 'create-ticket':
+        return await handleCreateTicket(req);
+      case 'update-ticket':
+        return await handleUpdateTicket(req);
+      case 'search-tickets':
+        return await handleSearchTickets(req);
       case 'create-cluster':
         return await handleCreateCluster(req);
       default:
@@ -381,5 +389,187 @@ function mapJiraPriorityToClustering(jiraPriority: string): 'Critical' | 'High' 
     return 'Low';
   } else {
     return 'Medium';
+  }
+}
+
+// Create a new JIRA ticket
+async function handleCreateTicket(req: Request): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
+
+  const { config, ticket } = await req.json();
+  
+  try {
+    const createUrl = `${config.jiraUrl}/rest/api/3/issue`;
+    
+    const response = await fetch(createUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: {
+          project: { key: config.projectKey },
+          summary: ticket.summary,
+          description: ticket.description || '',
+          issuetype: { name: ticket.issueType || 'Task' },
+          priority: { name: ticket.priority || 'Medium' },
+          assignee: ticket.assignee ? { accountId: ticket.assignee } : undefined,
+          labels: ticket.labels || [],
+          ...ticket.customFields
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`JIRA API Error: ${response.status} ${JSON.stringify(errorData)}`);
+    }
+
+    const result = await response.json();
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        ticket: {
+          key: result.key,
+          id: result.id,
+          self: result.self
+        }
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }), 
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+// Update an existing JIRA ticket
+async function handleUpdateTicket(req: Request): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
+
+  const { config, ticketKey, updates } = await req.json();
+  
+  try {
+    const updateUrl = `${config.jiraUrl}/rest/api/3/issue/${ticketKey}`;
+    
+    const response = await fetch(updateUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: {
+          summary: updates.summary,
+          description: updates.description,
+          priority: updates.priority ? { name: updates.priority } : undefined,
+          assignee: updates.assignee ? { accountId: updates.assignee } : undefined,
+          labels: updates.labels,
+          ...updates.customFields
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`JIRA API Error: ${response.status} ${JSON.stringify(errorData)}`);
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Ticket updated successfully'
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }), 
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+// Search tickets with custom JQL
+async function handleSearchTickets(req: Request): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
+
+  const { config, jql, fields, maxResults = 50 } = await req.json();
+  
+  try {
+    const searchUrl = `${config.jiraUrl}/rest/api/3/search`;
+    
+    const response = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jql: jql,
+        fields: fields || ['key', 'summary', 'status', 'priority', 'assignee', 'created'],
+        maxResults: maxResults,
+        startAt: 0
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`JIRA API Error: ${response.status} ${JSON.stringify(errorData)}`);
+    }
+
+    const result = await response.json();
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        tickets: result.issues,
+        total: result.total,
+        maxResults: result.maxResults
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }), 
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 }
