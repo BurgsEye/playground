@@ -5,6 +5,8 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { supabase } from '@/utils/supabase'
 import mockTickets, { Ticket } from '@/data/mockTickets'
+import AuthGuard from '@/components/AuthGuard'
+import Header from '@/components/Header'
 
 // Dynamic import for the map component to prevent SSR issues
 const TicketMap = dynamic(() => import('@/components/TicketMap'), {
@@ -83,28 +85,9 @@ export default function AutoClusteringPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <h1 className="text-xl font-semibold text-gray-900">JIRA Clustering</h1>
-            </div>
-            <nav className="flex items-center space-x-6">
-              <Link href="/projects" className="text-gray-600 hover:text-gray-900 text-sm font-medium">Projects</Link>
-              <Link href="/issues" className="text-gray-600 hover:text-gray-900 text-sm font-medium">Issues</Link>
-              <Link href="/dashboards" className="text-gray-600 hover:text-gray-900 text-sm font-medium">Dashboards</Link>
-              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-            </nav>
-          </div>
-        </div>
-      </header>
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -356,6 +339,7 @@ export default function AutoClusteringPage() {
           </div>
         )}
       </main>
-    </div>
+      </div>
+    </AuthGuard>
   )
 }

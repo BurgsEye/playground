@@ -1,0 +1,385 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+
+interface JiraConfig {
+  jiraUrl: string;
+  email: string;
+  apiToken: string;
+  projectKey: string;
+  clusteringStatus: string;
+  clusterTicketType: string;
+}
+
+interface JiraIssue {
+  key: string;
+  fields: {
+    summary: string;
+    description?: string;
+    priority: {
+      name: string;
+    };
+    status: {
+      name: string;
+    };
+    assignee?: {
+      displayName: string;
+      emailAddress: string;
+    };
+    created: string;
+    customfield_10001?: string; // Example location field - will be configurable
+  };
+}
+
+interface ClusteringTicket {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'Critical' | 'High' | 'Medium' | 'Low';
+  status: string;
+  assignee?: string;
+  createdAt: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const path = url.pathname.split('/').pop();
+
+    switch (path) {
+      case 'test-connection':
+        return await handleTestConnection(req);
+      case 'tickets':
+        return await handleGetTickets(req);
+      case 'create-cluster':
+        return await handleCreateCluster(req);
+      default:
+        return new Response(
+          JSON.stringify({ error: 'Invalid endpoint' }), 
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+    }
+  } catch (error) {
+    console.error('JIRA Integration Error:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message 
+      }), 
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
+
+async function handleTestConnection(req: Request): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
+
+  const config: JiraConfig = await req.json();
+  
+  try {
+    const response = await fetch(`${config.jiraUrl}/rest/api/3/myself`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`JIRA API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const user = await response.json();
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        user: {
+          displayName: user.displayName,
+          emailAddress: user.emailAddress,
+          accountId: user.accountId
+        }
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }), 
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+async function handleGetTickets(req: Request): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
+
+  const config: JiraConfig = await req.json();
+  
+  try {
+    // Build JQL query to find tickets ready for clustering
+    const jql = `project = "${config.projectKey}" AND status = "${config.clusteringStatus}"`;
+    const searchUrl = `${config.jiraUrl}/rest/api/3/search`;
+    
+    const response = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jql,
+        maxResults: 100, // Adjust as needed
+        fields: [
+          'summary',
+          'description', 
+          'priority',
+          'status',
+          'assignee',
+          'created',
+          'customfield_10001' // Location field - will be configurable
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`JIRA API Error: ${response.status} ${response.statusText}`);
+    }
+
+    const searchResults = await response.json();
+    const tickets: ClusteringTicket[] = [];
+
+    for (const issue of searchResults.issues) {
+      const ticket = await transformJiraIssueToTicket(issue);
+      if (ticket) {
+        tickets.push(ticket);
+      }
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        tickets,
+        total: searchResults.total,
+        jql
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }), 
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+async function handleCreateCluster(req: Request): Promise<Response> {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
+
+  const { config, clusterData } = await req.json();
+  
+  try {
+    // Create the Job Cluster ticket
+    const clusterTicket = {
+      fields: {
+        project: {
+          key: config.projectKey
+        },
+        summary: `Job Cluster: ${clusterData.name}`,
+        description: `Automatically created cluster containing ${clusterData.ticketIds.length} tickets.\n\nCluster Details:\n- Radius: ${clusterData.radius}km\n- Priority: ${clusterData.priority}\n- Created: ${new Date().toISOString()}`,
+        issuetype: {
+          name: config.clusterTicketType
+        }
+      }
+    };
+
+    const createResponse = await fetch(`${config.jiraUrl}/rest/api/3/issue`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(clusterTicket)
+    });
+
+    if (!createResponse.ok) {
+      throw new Error(`Failed to create cluster ticket: ${createResponse.status} ${createResponse.statusText}`);
+    }
+
+    const createdCluster = await createResponse.json();
+    
+    // Link the selected tickets to the cluster
+    const linkPromises = clusterData.ticketIds.map(async (ticketId: string) => {
+      const linkData = {
+        type: {
+          name: "Relates" // or "Blocks", "Clones", etc. depending on your JIRA setup
+        },
+        inwardIssue: {
+          key: ticketId
+        },
+        outwardIssue: {
+          key: createdCluster.key
+        }
+      };
+
+      const linkResponse = await fetch(`${config.jiraUrl}/rest/api/3/issueLink`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(linkData)
+      });
+
+      if (!linkResponse.ok) {
+        console.warn(`Failed to link ticket ${ticketId} to cluster: ${linkResponse.status}`);
+      }
+
+      return linkResponse.ok;
+    });
+
+    const linkResults = await Promise.all(linkPromises);
+    const successfulLinks = linkResults.filter(Boolean).length;
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        clusterTicket: {
+          key: createdCluster.key,
+          id: createdCluster.id,
+          self: createdCluster.self
+        },
+        linkedTickets: successfulLinks,
+        totalTickets: clusterData.ticketIds.length
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }), 
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+async function transformJiraIssueToTicket(issue: JiraIssue): Promise<ClusteringTicket | null> {
+  try {
+    // Extract location from custom field or description
+    // This is a placeholder - actual implementation depends on how location is stored
+    const locationData = await extractLocationFromIssue(issue);
+    
+    if (!locationData) {
+      console.warn(`No location data found for ticket ${issue.key}`);
+      return null; // Skip tickets without location data
+    }
+
+    const priority = mapJiraPriorityToClustering(issue.fields.priority.name);
+    
+    return {
+      id: issue.key,
+      title: issue.fields.summary,
+      description: issue.fields.description || '',
+      priority,
+      status: issue.fields.status.name,
+      assignee: issue.fields.assignee?.displayName,
+      createdAt: issue.fields.created,
+      location: locationData
+    };
+  } catch (error) {
+    console.error(`Error transforming JIRA issue ${issue.key}:`, error);
+    return null;
+  }
+}
+
+async function extractLocationFromIssue(issue: JiraIssue): Promise<{ latitude: number; longitude: number; address: string } | null> {
+  // TODO: This needs to be implemented based on how location is stored in your JIRA
+  // Options:
+  // 1. Custom field with coordinates
+  // 2. Address field that needs geocoding
+  // 3. Location data in description that needs parsing
+  
+  // Placeholder implementation - replace with actual logic
+  const locationField = issue.fields.customfield_10001;
+  
+  if (locationField) {
+    // Example: Parse "51.5074,-0.1278,London, UK" format
+    const parts = locationField.split(',');
+    if (parts.length >= 3) {
+      const lat = parseFloat(parts[0]);
+      const lng = parseFloat(parts[1]);
+      const address = parts.slice(2).join(',').trim();
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return {
+          latitude: lat,
+          longitude: lng,
+          address
+        };
+      }
+    }
+  }
+  
+  // If no location data found, return null to skip this ticket
+  return null;
+}
+
+function mapJiraPriorityToClustering(jiraPriority: string): 'Critical' | 'High' | 'Medium' | 'Low' {
+  const priority = jiraPriority.toLowerCase();
+  
+  if (priority.includes('critical') || priority.includes('highest')) {
+    return 'Critical';
+  } else if (priority.includes('high')) {
+    return 'High';
+  } else if (priority.includes('low') || priority.includes('lowest')) {
+    return 'Low';
+  } else {
+    return 'Medium';
+  }
+}
