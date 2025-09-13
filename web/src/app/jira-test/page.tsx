@@ -24,7 +24,7 @@ export default function JiraTestPage() {
       const result = await response.json();
       setTestResults({ function: functionName, result, success: response.ok });
     } catch (error) {
-      setTestResults({ function: functionName, error: error.message, success: false });
+      setTestResults({ function: functionName, error: error instanceof Error ? error.message : 'Unknown error', success: false });
     } finally {
       setIsLoading(false);
     }
