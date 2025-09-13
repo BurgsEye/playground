@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import AuthGuard from "@/components/AuthGuard";
 import Header from "@/components/Header";
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -209,5 +209,20 @@ export default function Home() {
       </main>
       </div>
     </AuthGuard>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

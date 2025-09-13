@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { supabase } from '@/utils/supabase'
@@ -42,17 +42,41 @@ export default function ManualClusteringPage() {
   // Available colors for clusters
   const clusterColors = ['blue', 'green', 'red', 'purple', 'orange', 'cyan', 'pink', 'teal']
 
-  // Fetch nearby tickets when selected ticket or radius changes
-  useEffect(() => {
-    if (selectedTicket) {
-      fetchNearbyTickets()
-    } else {
-      setNearbyTickets([])
-      setSelectedNearbyTickets(new Set())
-    }
-  }, [selectedTicket, radius])
+  // Helper functions
+  const getAvailableTickets = useCallback(() => {
+    const clusteredTicketIds = new Set(
+      clusters.flatMap(cluster => cluster.tickets.map(t => t.id))
+    )
+    return mockTickets.filter(ticket => !clusteredTicketIds.has(ticket.id))
+  }, [clusters])
 
-  const fetchNearbyTickets = async () => {
+  // Haversine distance calculation
+  function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371 // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R * c
+  }
+
+  const fallbackNearbyCalculation = useCallback(() => {
+    if (!selectedTicket) return
+
+    const nearby = getAvailableTickets().filter(ticket => {
+      if (ticket.id === selectedTicket.id) return true
+      const distance = haversineDistance(
+        selectedTicket.lat, selectedTicket.lng,
+        ticket.lat, ticket.lng
+      )
+      return distance <= radius
+    })
+    setNearbyTickets(nearby)
+  }, [selectedTicket, radius, getAvailableTickets])
+
+  const fetchNearbyTickets = useCallback(async () => {
     if (!selectedTicket) return
 
     setIsLoading(true)
@@ -78,34 +102,18 @@ export default function ManualClusteringPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [selectedTicket, radius, getAvailableTickets, fallbackNearbyCalculation])
 
-  const fallbackNearbyCalculation = () => {
-    if (!selectedTicket) return
+  // Fetch nearby tickets when selected ticket or radius changes
+  useEffect(() => {
+    if (selectedTicket) {
+      fetchNearbyTickets()
+    } else {
+      setNearbyTickets([])
+      setSelectedNearbyTickets(new Set())
+    }
+  }, [selectedTicket, radius, fetchNearbyTickets])
 
-    const nearby = getAvailableTickets().filter(ticket => {
-      if (ticket.id === selectedTicket.id) return true
-      const distance = haversineDistance(
-        selectedTicket.lat, selectedTicket.lng,
-        ticket.lat, ticket.lng
-      )
-      return distance <= radius
-    })
-    setNearbyTickets(nearby)
-  }
-
-  // Haversine distance calculation
-  function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371 // Earth's radius in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLon = (lon2 - lon1) * Math.PI / 180
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-    return R * c
-  }
 
   const handleTicketSelect = (ticket: Ticket) => {
     setSelectedTicket(ticket)
@@ -160,13 +168,6 @@ export default function ManualClusteringPage() {
 
   const isTicketClustered = (ticketId: string): boolean => {
     return clusters.some(cluster => cluster.tickets.some(t => t.id === ticketId))
-  }
-
-  const getAvailableTickets = () => {
-    const clusteredTicketIds = new Set(
-      clusters.flatMap(cluster => cluster.tickets.map(t => t.id))
-    )
-    return mockTickets.filter(ticket => !clusteredTicketIds.has(ticket.id))
   }
 
   const getTicketTypeColor = (ticketType: Ticket['ticketType']) => {
