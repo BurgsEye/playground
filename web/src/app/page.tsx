@@ -39,7 +39,7 @@ export default function Home() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">Ticket Clustering Dashboard</h1>
-          <p className="text-gray-600">Optimize engineer scheduling with intelligent geographic ticket grouping</p>
+          <p className="text-gray-600">Optimize engineer scheduling with intelligent geographic ticket grouping • Auto-deploy enabled! 🚀</p>
         </div>
 
         {/* Quick Actions */}

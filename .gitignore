@@ -94,3 +94,4 @@ supabase/.temp/
 # Package manager lock files (keep npm, ignore others)
 yarn.lock
 pnpm-lock.yaml
+.vercel
