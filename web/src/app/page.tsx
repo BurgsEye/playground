@@ -146,28 +146,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="mt-8 bg-white rounded-lg border border-gray-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">System Overview</h2>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-3 gap-6 text-center">
-              <div>
-                <div className="text-2xl font-bold text-blue-600">50+</div>
-                <div className="text-sm text-gray-600">Mock Tickets</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">~20ms</div>
-                <div className="text-sm text-gray-600">Processing Time</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-purple-600">UK-Wide</div>
-                <div className="text-sm text-gray-600">Coverage</div>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </main>
     </div>
   );
