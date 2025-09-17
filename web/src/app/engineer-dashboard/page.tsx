@@ -68,14 +68,14 @@ export default function EngineerDashboard() {
     setError(null)
 
     try {
-      // For now, we'll fetch all clusters and filter by engineer email
-      // In production, this would be a proper JIRA query for assigned clusters
+      // Fetch both clusters and installation requests
+      // In production, this would filter by engineer email assignment
       const { data, error } = await supabase.functions.invoke('jira-integration/search-tickets', {
         body: {
           jiraUrl: 'https://westbase.atlassian.net',
           email: 'tf@westbase.io',
           apiToken: 'REMOVED',
-          jql: `project = "AIRB" AND issuetype = "Cluster" AND status != "Done" ORDER BY created DESC`
+          jql: `project = "AIRB" AND (issuetype = "AIRB - Job Cluster" OR issuetype = "AIRB: Installation Request") AND status != "Done" ORDER BY created DESC`
         }
       })
 
@@ -84,8 +84,16 @@ export default function EngineerDashboard() {
       }
 
       if (data.success && data.issues) {
-        // Transform JIRA issues to cluster format
-        const transformedClusters: Cluster[] = data.issues.map((issue: any) => ({
+        // Separate clusters and installation requests
+        const clusterIssues = data.issues.filter((issue: any) => 
+          issue.fields.issuetype.name === 'AIRB - Job Cluster'
+        )
+        const installationIssues = data.issues.filter((issue: any) => 
+          issue.fields.issuetype.name === 'AIRB: Installation Request'
+        )
+
+        // Transform cluster issues
+        const transformedClusters: Cluster[] = clusterIssues.map((issue: any) => ({
           id: issue.id,
           key: issue.key,
           summary: issue.fields.summary,
@@ -100,6 +108,51 @@ export default function EngineerDashboard() {
           completedJobs: 0,
           scheduledDate: issue.fields.created
         }))
+
+        // If no clusters, create a mock cluster with installation requests
+        if (transformedClusters.length === 0 && installationIssues.length > 0) {
+          const mockCluster: Cluster = {
+            id: 'mock-cluster-1',
+            key: 'MOCK-1',
+            summary: 'Installation Requests (No Cluster)',
+            status: 'In Progress',
+            jobs: installationIssues.map((issue: any) => ({
+              id: issue.id,
+              key: issue.key,
+              summary: issue.fields.summary,
+              status: issue.fields.status.name,
+              priority: issue.fields.priority.name,
+              assignee: issue.fields.assignee?.displayName,
+              location: {
+                latitude: 51.5756602, // Mock location
+                longitude: -2.9979936,
+                address: 'Newport, Wales'
+              },
+              airbFields: {
+                installationType: 'Silver',
+                externalCPE: 'Wave Nano',
+                internalCPE: 'UDR7',
+                wifiMesh: 'Domestic (<2 APs)',
+                clusterReady: 'Yes',
+                jobCompleteStatus: issue.fields.status.name,
+                preferredWindow: 'Morning',
+                additionalNotes: 'Mock data for demo'
+              },
+              createdAt: issue.fields.created
+            })),
+            location: {
+              latitude: 51.5756602,
+              longitude: -2.9979936,
+              address: 'Newport, Wales'
+            },
+            totalJobs: installationIssues.length,
+            completedJobs: installationIssues.filter((issue: any) => 
+              issue.fields.status.name === 'Completed'
+            ).length,
+            scheduledDate: installationIssues[0]?.fields.created
+          }
+          transformedClusters.push(mockCluster)
+        }
 
         setClusters(transformedClusters)
       } else {

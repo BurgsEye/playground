@@ -75,7 +75,7 @@ export default function ClusterDetailPage() {
           jiraUrl: 'https://westbase.atlassian.net',
           email: 'tf@westbase.io',
           apiToken: 'REMOVED',
-          jql: `key = "${clusterKey}"`
+          jql: `key = "${clusterKey}" AND issuetype = "AIRB - Job Cluster"`
         }
       })
 
