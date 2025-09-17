@@ -58,12 +58,6 @@ export default function ClusterDetailPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [showJobModal, setShowJobModal] = useState(false)
 
-  useEffect(() => {
-    if (clusterKey) {
-      fetchClusterDetails()
-    }
-  }, [clusterKey])
-
   const fetchClusterDetails = async () => {
     setLoading(true)
     setError(null)
@@ -136,7 +130,7 @@ export default function ClusterDetailPage() {
           }
         ]
 
-        const clusterData: Cluster = {
+        const cluster: Cluster = {
           id: clusterIssue.id,
           key: clusterIssue.key,
           summary: clusterIssue.fields.summary,
@@ -152,7 +146,7 @@ export default function ClusterDetailPage() {
           scheduledDate: clusterIssue.fields.created
         }
 
-        setCluster(clusterData)
+        setCluster(cluster)
       } else {
         throw new Error('Cluster not found')
       }
@@ -163,6 +157,12 @@ export default function ClusterDetailPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (clusterKey) {
+      fetchClusterDetails()
+    }
+  }, [clusterKey])
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {

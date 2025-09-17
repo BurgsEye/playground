@@ -54,14 +54,6 @@ export default function EngineerDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    getUser()
-  }, [])
-
   const fetchEngineerClusters = async () => {
     if (!user?.email) return
 
@@ -137,6 +129,14 @@ export default function EngineerDashboard() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+  }, [])
 
   useEffect(() => {
     if (user?.email) {
