@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/utils/supabase'
 import AuthGuard from '@/components/AuthGuard'
 import Header from '@/components/Header'
+import { generateMockAirbInstallationRequests, generateMockAirbCluster, convertToJob } from '@/data/airbMockData'
 
 interface Job {
   id: string
@@ -19,12 +20,12 @@ interface Job {
     address: string
   }
   airbFields: {
-    installationType?: string
-    externalCPE?: string
-    internalCPE?: string
-    wifiMesh?: string
-    clusterReady?: string
-    jobCompleteStatus?: string
+    installationType: string
+    externalCPE: string
+    internalCPE: string
+    wifiMesh: string
+    clusterReady: string
+    jobCompleteStatus: string
     preferredWindow?: string
     additionalNotes?: string
   }
@@ -109,49 +110,20 @@ export default function EngineerDashboard() {
           scheduledDate: issue.fields.created
         }))
 
-        // If no clusters, create a mock cluster with installation requests
-        if (transformedClusters.length === 0 && installationIssues.length > 0) {
-          const mockCluster: Cluster = {
-            id: 'mock-cluster-1',
-            key: 'MOCK-1',
-            summary: 'Installation Requests (No Cluster)',
-            status: 'In Progress',
-            jobs: installationIssues.map((issue: any) => ({
-              id: issue.id,
-              key: issue.key,
-              summary: issue.fields.summary,
-              status: issue.fields.status.name,
-              priority: issue.fields.priority.name,
-              assignee: issue.fields.assignee?.displayName,
-              location: {
-                latitude: 51.5756602, // Mock location
-                longitude: -2.9979936,
-                address: 'Newport, Wales'
-              },
-              airbFields: {
-                installationType: 'Silver',
-                externalCPE: 'Wave Nano',
-                internalCPE: 'UDR7',
-                wifiMesh: 'Domestic (<2 APs)',
-                clusterReady: 'Yes',
-                jobCompleteStatus: issue.fields.status.name,
-                preferredWindow: 'Morning',
-                additionalNotes: 'Mock data for demo'
-              },
-              createdAt: issue.fields.created
-            })),
-            location: {
-              latitude: 51.5756602,
-              longitude: -2.9979936,
-              address: 'Newport, Wales'
-            },
-            totalJobs: installationIssues.length,
-            completedJobs: installationIssues.filter((issue: any) => 
-              issue.fields.status.name === 'Completed'
-            ).length,
-            scheduledDate: installationIssues[0]?.fields.created
-          }
-          transformedClusters.push(mockCluster)
+        // If no clusters, create mock clusters with installation requests
+        if (transformedClusters.length === 0) {
+          // Generate realistic mock data based on real JIRA field options
+          const mockRequests = generateMockAirbInstallationRequests(8)
+          
+          // Create Newport cluster
+          const newportRequests = mockRequests.slice(0, 4)
+          const newportCluster = generateMockAirbCluster('1', 'Newport East Jobs', newportRequests)
+          
+          // Create Cardiff cluster  
+          const cardiffRequests = mockRequests.slice(4, 8)
+          const cardiffCluster = generateMockAirbCluster('2', 'Cardiff City Centre', cardiffRequests)
+          
+          transformedClusters.push(newportCluster, cardiffCluster)
         }
 
         setClusters(transformedClusters)
