@@ -51,6 +51,7 @@ interface Cluster {
   id: string
   key: string
   summary: string
+  name: string
   status: string
   jobs: Job[]
   location: {
@@ -60,6 +61,7 @@ interface Cluster {
   }
   totalJobs: number
   completedJobs: number
+  progress: number
   scheduledDate?: string
 }
 
