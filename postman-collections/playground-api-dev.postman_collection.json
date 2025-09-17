@@ -1,0 +1,413 @@
+{
+  "info": {
+    "name": "Playground API - Development",
+    "description": "API collection for the Playground project - Development environment",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "supabaseUrl",
+      "value": "https://uofwzjsokfuigryetnle.supabase.co",
+      "type": "string"
+    },
+    {
+      "key": "supabaseAnonKey",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvZnd6anNva2Z1aWdyeWV0bmxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MTMyNDksImV4cCI6MjA3MzE4OTI0OX0.akyFdpQY3ozE7-EemXxAXgScvduMzUpItEqwiqzuK2M",
+      "type": "string"
+    },
+    {
+      "key": "jiraUrl",
+      "value": "https://westbase.atlassian.net",
+      "type": "string"
+    },
+    {
+      "key": "jiraEmail",
+      "value": "tf@westbase.io",
+      "type": "string"
+    },
+    {
+      "key": "jiraApiToken",
+      "value": "YOUR_JIRA_API_TOKEN_HERE",
+      "type": "string"
+    },
+    {
+      "key": "jiraProjectKey",
+      "value": "AIRB",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "Sign In",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signin"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auto-Clustering",
+      "item": [
+        {
+          "name": "Precise Clustering (Exactly 3 jobs)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tickets\": [\n    {\n      \"id\": \"1\",\n      \"lat\": 40.7128,\n      \"lng\": -74.0060,\n      \"title\": \"Fix login bug\",\n      \"priority\": \"High\"\n    },\n    {\n      \"id\": \"2\",\n      \"lat\": 40.7130,\n      \"lng\": -74.0058,\n      \"title\": \"Update dashboard\",\n      \"priority\": \"Medium\"\n    },\n    {\n      \"id\": \"3\",\n      \"lat\": 40.7132,\n      \"lng\": -74.0056,\n      \"title\": \"Add new feature\",\n      \"priority\": \"Low\"\n    },\n    {\n      \"id\": \"4\",\n      \"lat\": 40.7134,\n      \"lng\": -74.0054,\n      \"title\": \"Fix database issue\",\n      \"priority\": \"High\"\n    },\n    {\n      \"id\": \"5\",\n      \"lat\": 40.7136,\n      \"lng\": -74.0052,\n      \"title\": \"Update documentation\",\n      \"priority\": \"Medium\"\n    },\n    {\n      \"id\": \"6\",\n      \"lat\": 40.7138,\n      \"lng\": -74.0050,\n      \"title\": \"Refactor code\",\n      \"priority\": \"Low\"\n    }\n  ],\n  \"radius_km\": 1,\n  \"precise_cluster_size\": 3\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/auto-cluster",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "auto-cluster"]
+            }
+          }
+        },
+        {
+          "name": "Min/Max Clustering (2-4 jobs)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tickets\": [\n    {\n      \"id\": \"1\",\n      \"lat\": 40.7128,\n      \"lng\": -74.0060,\n      \"title\": \"Fix login bug\",\n      \"priority\": \"High\"\n    },\n    {\n      \"id\": \"2\",\n      \"lat\": 40.7130,\n      \"lng\": -74.0058,\n      \"title\": \"Update dashboard\",\n      \"priority\": \"Medium\"\n    },\n    {\n      \"id\": \"3\",\n      \"lat\": 40.7132,\n      \"lng\": -74.0056,\n      \"title\": \"Add new feature\",\n      \"priority\": \"Low\"\n    },\n    {\n      \"id\": \"4\",\n      \"lat\": 40.7134,\n      \"lng\": -74.0054,\n      \"title\": \"Fix database issue\",\n      \"priority\": \"High\"\n    },\n    {\n      \"id\": \"5\",\n      \"lat\": 40.7136,\n      \"lng\": -74.0052,\n      \"title\": \"Update documentation\",\n      \"priority\": \"Medium\"\n    }\n  ],\n  \"radius_km\": 1,\n  \"min_cluster_size\": 2,\n  \"max_cluster_size\": 4\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/auto-cluster",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "auto-cluster"]
+            }
+          }
+        },
+        {
+          "name": "Legacy Mode (Fixed size)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tickets\": [\n    {\n      \"id\": \"1\",\n      \"lat\": 40.7128,\n      \"lng\": -74.0060,\n      \"title\": \"Fix login bug\",\n      \"priority\": \"High\"\n    },\n    {\n      \"id\": \"2\",\n      \"lat\": 40.7130,\n      \"lng\": -74.0058,\n      \"title\": \"Update dashboard\",\n      \"priority\": \"Medium\"\n    },\n    {\n      \"id\": \"3\",\n      \"lat\": 40.7132,\n      \"lng\": -74.0056,\n      \"title\": \"Add new feature\",\n      \"priority\": \"Low\"\n    }\n  ],\n  \"radius_km\": 1,\n  \"cluster_size\": 2\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/auto-cluster",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "auto-cluster"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "JIRA Integration",
+      "item": [
+        {
+          "name": "Test Connection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"projectKey\": \"{{jiraProjectKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/jira-integration/test-connection",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "jira-integration", "test-connection"]
+            }
+          }
+        },
+        {
+          "name": "Get Tickets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"projectKey\": \"{{jiraProjectKey}}\",\n  \"clusteringStatus\": \"To Do\"\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/jira-integration/get-tickets",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "jira-integration", "get-tickets"]
+            }
+          }
+        },
+        {
+          "name": "Search Tickets (JQL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"jql\": \"project = AIRB AND status != Done ORDER BY created DESC\"\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/jira-integration/search-tickets",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "jira-integration", "search-tickets"]
+            }
+          }
+        },
+        {
+          "name": "Create Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"projectKey\": \"{{jiraProjectKey}}\",\n  \"summary\": \"Test ticket from API\",\n  \"description\": \"This is a test ticket created via the API\",\n  \"issueType\": \"Task\",\n  \"priority\": \"Medium\"\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/jira-integration/create-ticket",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "jira-integration", "create-ticket"]
+            }
+          }
+        },
+        {
+          "name": "Update Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabaseAnonKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"ticketKey\": \"AIRB-123\",\n  \"fields\": {\n    \"summary\": \"Updated ticket title\",\n    \"description\": \"Updated description\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/functions/v1/jira-integration/update-ticket",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["functions", "v1", "jira-integration", "update-ticket"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Web App API Routes",
+      "item": [
+        {
+          "name": "JIRA Test Connection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"projectKey\": \"{{jiraProjectKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jira/test-connection",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jira", "test-connection"]
+            }
+          }
+        },
+        {
+          "name": "JIRA Get Tickets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"projectKey\": \"{{jiraProjectKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jira/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jira", "tickets"]
+            }
+          }
+        },
+        {
+          "name": "JIRA Search Tickets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"jql\": \"project = AIRB AND status != Done ORDER BY created DESC\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jira/search-tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jira", "search-tickets"]
+            }
+          }
+        },
+        {
+          "name": "JIRA Create Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"projectKey\": \"{{jiraProjectKey}}\",\n  \"summary\": \"Test ticket from web API\",\n  \"description\": \"This is a test ticket created via the web API\",\n  \"issueType\": \"Task\",\n  \"priority\": \"Medium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jira/create-ticket",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jira", "create-ticket"]
+            }
+          }
+        },
+        {
+          "name": "JIRA Update Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jiraUrl\": \"{{jiraUrl}}\",\n  \"email\": \"{{jiraEmail}}\",\n  \"apiToken\": \"{{jiraApiToken}}\",\n  \"ticketKey\": \"AIRB-123\",\n  \"fields\": {\n    \"summary\": \"Updated ticket title from web API\",\n    \"description\": \"Updated description from web API\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/jira/update-ticket",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jira", "update-ticket"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -153,28 +153,14 @@ async function handleGetTickets(req: Request): Promise<Response> {
   try {
     // Build JQL query to find tickets ready for clustering
     const jql = `project = "${config.projectKey}" AND status = "${config.clusteringStatus}"`;
-    const searchUrl = `${config.jiraUrl}/rest/api/3/search`;
+    const searchUrl = `${config.jiraUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100&fields=summary,description,priority,status,assignee,created,customfield_10001`;
     
     const response = await fetch(searchUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: {
         'Authorization': `Basic ${btoa(`${config.email}:${config.apiToken}`)}`,
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jql,
-        maxResults: 100, // Adjust as needed
-        fields: [
-          'summary',
-          'description', 
-          'priority',
-          'status',
-          'assignee',
-          'created',
-          'customfield_10001' // Location field - will be configurable
-        ]
-      })
+      }
     });
 
     if (!response.ok) {
