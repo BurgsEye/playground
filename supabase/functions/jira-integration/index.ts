@@ -26,7 +26,16 @@ interface JiraIssue {
       emailAddress: string;
     };
     created: string;
-    customfield_10001?: string; // Example location field - will be configurable
+    customfield_10840?: {
+      coordinates: [number, number];
+      street: string;
+      streetNumber: string;
+      city: string;
+      stateOrProvince: string;
+      postalCode: string;
+      country: string;
+      displayName: string;
+    };
   };
 }
 
@@ -153,7 +162,7 @@ async function handleGetTickets(req: Request): Promise<Response> {
   try {
     // Build JQL query to find tickets ready for clustering
     const jql = `project = "${config.projectKey}" AND status = "${config.clusteringStatus}"`;
-    const searchUrl = `${config.jiraUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100&fields=summary,description,priority,status,assignee,created,customfield_10001`;
+    const searchUrl = `${config.jiraUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=100&fields=summary,description,priority,status,assignee,created,customfield_10840`;
     
     const response = await fetch(searchUrl, {
       method: 'GET',
@@ -333,34 +342,23 @@ async function transformJiraIssueToTicket(issue: JiraIssue): Promise<ClusteringT
 }
 
 async function extractLocationFromIssue(issue: JiraIssue): Promise<{ latitude: number; longitude: number; address: string } | null> {
-  // TODO: This needs to be implemented based on how location is stored in your JIRA
-  // Options:
-  // 1. Custom field with coordinates
-  // 2. Address field that needs geocoding
-  // 3. Location data in description that needs parsing
+  // Extract location from customfield_10840 which contains a JSON object with coordinates
+  const locationField = issue.fields.customfield_10840;
   
-  // Placeholder implementation - replace with actual logic
-  const locationField = issue.fields.customfield_10001;
-  
-  if (locationField) {
-    // Example: Parse "51.5074,-0.1278,London, UK" format
-    const parts = locationField.split(',');
-    if (parts.length >= 3) {
-      const lat = parseFloat(parts[0]);
-      const lng = parseFloat(parts[1]);
-      const address = parts.slice(2).join(',').trim();
-      
-      if (!isNaN(lat) && !isNaN(lng)) {
-        return {
-          latitude: lat,
-          longitude: lng,
-          address
-        };
-      }
+  if (locationField && locationField.coordinates && Array.isArray(locationField.coordinates) && locationField.coordinates.length >= 2) {
+    const [latitude, longitude] = locationField.coordinates;
+    
+    if (!isNaN(latitude) && !isNaN(longitude)) {
+      return {
+        latitude: latitude,
+        longitude: longitude,
+        address: locationField.displayName || `${locationField.streetNumber} ${locationField.street}, ${locationField.city}, ${locationField.country}`
+      };
     }
   }
   
-  // If no location data found, return null to skip this ticket
+  // If no valid location data found, return null to skip this ticket
+  console.warn(`No valid location data found for ticket ${issue.key} in customfield_10840`);
   return null;
 }
 

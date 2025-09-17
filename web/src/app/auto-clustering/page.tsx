@@ -49,6 +49,61 @@ export default function AutoClusteringPage() {
   const [radius, setRadius] = useState(20)
   const [clusterSize, setClusterSize] = useState(3)
   const [selectedCluster, setSelectedCluster] = useState<ClusterResult | null>(null)
+  
+  // New state for data source toggle and JIRA inputs
+  const [useLiveData, setUseLiveData] = useState(false)
+  const [jiraProject, setJiraProject] = useState('AIRB')
+  const [jiraStatus, setJiraStatus] = useState('Not Completed')
+  const [jiraTickets, setJiraTickets] = useState<Ticket[]>([])
+  const [jiraLoading, setJiraLoading] = useState(false)
+
+  // Fetch JIRA tickets
+  const fetchJiraTickets = async () => {
+    setJiraLoading(true)
+    setError(null)
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('jira-integration', {
+        body: {
+          action: 'get-tickets',
+          jiraUrl: 'https://westbase.atlassian.net',
+          email: 'tf@westbase.io',
+          apiToken: 'REMOVED',
+          projectKey: jiraProject,
+          clusteringStatus: jiraStatus
+        }
+      })
+
+      if (error) {
+        throw new Error(`JIRA API error: ${error.message}`)
+      }
+
+      if (data.success && data.tickets) {
+        // Transform JIRA tickets to our Ticket format
+        const transformedTickets: Ticket[] = data.tickets.map((ticket: any) => ({
+          id: ticket.id,
+          title: ticket.title,
+          description: ticket.description || '',
+          lat: ticket.location.latitude,
+          lng: ticket.location.longitude,
+          priority: ticket.priority,
+          status: ticket.status,
+          ticketType: 'JIRA', // Mark as JIRA ticket
+          createdAt: ticket.createdAt
+        }))
+        
+        setJiraTickets(transformedTickets)
+        console.log(`✅ Fetched ${transformedTickets.length} JIRA tickets`)
+      } else {
+        throw new Error('No tickets returned from JIRA')
+      }
+    } catch (error: any) {
+      console.error('❌ JIRA Error:', error)
+      setError(error.message)
+    } finally {
+      setJiraLoading(false)
+    }
+  }
 
   const runClustering = async () => {
     setIsRunning(true)
@@ -57,11 +112,18 @@ export default function AutoClusteringPage() {
     try {
       console.log('🚀 Calling Edge Function...')
       
+      // Use live JIRA data if toggle is on, otherwise use mock data
+      const ticketsToUse = useLiveData ? jiraTickets : mockTickets
+      
+      if (useLiveData && jiraTickets.length === 0) {
+        throw new Error('No JIRA tickets loaded. Please fetch tickets first.')
+      }
+      
       const { data, error } = await supabase.functions.invoke('auto-cluster', {
         body: {
-          tickets: mockTickets,
+          tickets: ticketsToUse,
           radius_km: radius,
-          cluster_size: clusterSize,
+          precise_cluster_size: clusterSize, // Use precise clustering as default
           prioritize_high_priority: true
         }
       })
@@ -108,12 +170,100 @@ export default function AutoClusteringPage() {
           <p className="text-gray-600">Automatically group tickets using intelligent algorithms based on geographic proximity and priority</p>
         </div>
 
+        {/* Data Source Toggle - Top Right Corner */}
+        <div className="absolute top-4 right-4 z-10">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+            <div className="flex items-center space-x-3">
+              <span className="text-sm font-medium text-gray-700">Data Source:</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setUseLiveData(false)}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    !useLiveData 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Mock Data
+                </button>
+                <button
+                  onClick={() => setUseLiveData(true)}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    useLiveData 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Live JIRA
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Controls Panel */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-medium text-gray-900">Clustering Parameters</h2>
           </div>
           <div className="p-6">
+            {/* JIRA Configuration - Show when using live data */}
+            {useLiveData && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="text-sm font-medium text-green-800 mb-3">JIRA Configuration</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Project Key
+                    </label>
+                    <input
+                      type="text"
+                      value={jiraProject}
+                      onChange={(e) => setJiraProject(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      placeholder="e.g., AIRB"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <input
+                      type="text"
+                      value={jiraStatus}
+                      onChange={(e) => setJiraStatus(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      placeholder="e.g., Not Completed"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={fetchJiraTickets}
+                      disabled={jiraLoading}
+                      className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+                    >
+                      {jiraLoading ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Loading...
+                        </span>
+                      ) : (
+                        'Fetch Tickets'
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {jiraTickets.length > 0 && (
+                  <div className="mt-3 text-sm text-green-700">
+                    ✅ Loaded {jiraTickets.length} tickets from JIRA
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -235,6 +385,7 @@ export default function AutoClusteringPage() {
                                 case 'Gold': return 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                                 case 'Silver': return 'bg-gray-100 text-gray-800 border border-gray-300'
                                 case 'Bronze': return 'bg-orange-100 text-orange-800 border border-orange-300'
+                                case 'JIRA': return 'bg-blue-100 text-blue-800 border border-blue-300'
                                 default: return 'bg-gray-100 text-gray-700 border border-gray-300'
                               }
                             }
@@ -271,6 +422,7 @@ export default function AutoClusteringPage() {
                               case 'Gold': return 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                               case 'Silver': return 'bg-gray-100 text-gray-800 border border-gray-300'
                               case 'Bronze': return 'bg-orange-100 text-orange-800 border border-orange-300'
+                              case 'JIRA': return 'bg-blue-100 text-blue-800 border border-blue-300'
                               default: return 'bg-gray-100 text-gray-700 border border-gray-300'
                             }
                           }
@@ -307,7 +459,7 @@ export default function AutoClusteringPage() {
                 <div className="p-4">
                   <div className="h-96">
                     <TicketMap
-                      tickets={mockTickets}
+                      tickets={useLiveData ? jiraTickets : mockTickets}
                       clusters={clusteringResult.clusters}
                       selectedCluster={selectedCluster}
                       onTicketClick={(ticket) => {
