@@ -1,8 +1,14 @@
 // Test setup file
-import { config } from 'dotenv';
-
-// Load environment variables for testing
-config({ path: '.env.local' });
+// Only load dotenv in test environment
+if (process.env.NODE_ENV === 'test') {
+  try {
+    const { config } = require('dotenv');
+    config({ path: '.env.local' });
+  } catch (error) {
+    // dotenv not available, continue without it
+    console.warn('dotenv not available, using environment variables as-is');
+  }
+}
 
 // Mock console methods to reduce noise in tests
 global.console = {
