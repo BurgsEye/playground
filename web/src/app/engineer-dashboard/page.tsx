@@ -61,56 +61,10 @@ export default function EngineerDashboard() {
     setError(null)
 
     try {
-      // Fetch both clusters and installation requests
-      // In production, this would filter by engineer email assignment
-      const { data, error } = await supabase.functions.invoke('jira-integration/search-tickets', {
-        body: {
-          jiraUrl: 'https://westbase.atlassian.net',
-          email: 'tf@westbase.io',
-          apiToken: 'REMOVED',
-          jql: `project = "AIRB" AND (issuetype = "AIRB - Job Cluster" OR issuetype = "AIRB: Installation Request") AND status != "Done" ORDER BY created DESC`
-        }
-      })
-
-      if (error) {
-        throw new Error(`JIRA API error: ${error.message}`)
-      }
-
-      if (data.success && data.issues) {
-        // Separate clusters and installation requests
-        const clusterIssues = data.issues.filter((issue: any) => 
-          issue.fields.issuetype.name === 'AIRB - Job Cluster'
-        )
-        const installationIssues = data.issues.filter((issue: any) => 
-          issue.fields.issuetype.name === 'AIRB: Installation Request'
-        )
-
-        // Transform cluster issues
-        const transformedClusters: Cluster[] = clusterIssues.map((issue: any) => ({
-          id: issue.id,
-          key: issue.key,
-          summary: issue.fields.summary,
-          status: issue.fields.status.name,
-          jobs: [], // Will be populated when we fetch linked jobs
-          location: {
-            latitude: 0, // Will be calculated from jobs
-            longitude: 0,
-            address: 'Multiple locations'
-          },
-          totalJobs: 0,
-          completedJobs: 0,
-          scheduledDate: issue.fields.created
-        }))
-
-        // Always use mock data for now (until we have real clusters)
-        // Generate realistic clusters with proper geographic distribution
-        const mockClusters = generateRealisticClusters()
-        transformedClusters.push(...mockClusters)
-
-        setClusters(transformedClusters)
-      } else {
-        setClusters([])
-      }
+      // For now, always use mock data - in production this would fetch from JIRA
+      // Generate realistic clusters with proper geographic distribution
+      const mockClusters = generateRealisticClusters()
+      setClusters(mockClusters)
     } catch (error: any) {
       console.error('❌ Error fetching clusters:', error)
       setError(error.message)
