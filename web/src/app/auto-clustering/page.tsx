@@ -73,9 +73,9 @@ export default function AutoClusteringPage() {
     try {
       const { data, error } = await supabase.functions.invoke('jira-integration/tickets', {
         body: {
-          jiraUrl: 'https://westbase.atlassian.net',
-          email: 'tf@westbase.io',
-          apiToken: 'REMOVED',
+          jiraUrl: process.env.NEXT_PUBLIC_JIRA_URL || 'https://westbase.atlassian.net',
+          email: process.env.NEXT_PUBLIC_JIRA_EMAIL || 'tf@westbase.io',
+          apiToken: process.env.NEXT_PUBLIC_JIRA_API_TOKEN || '',
           projectKey: jiraProject,
           clusteringStatus: jiraStatus
         }
