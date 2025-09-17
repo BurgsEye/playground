@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/utils/supabase'
 import AuthGuard from '@/components/AuthGuard'
@@ -51,13 +51,12 @@ interface Cluster {
 
 export default function ClusterDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const clusterKey = params.clusterKey as string
   
   const [cluster, setCluster] = useState<Cluster | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
-  const [showJobModal, setShowJobModal] = useState(false)
 
   const fetchClusterDetails = async () => {
     setLoading(true)
@@ -121,8 +120,7 @@ export default function ClusterDetailPage() {
   }
 
   const handleJobClick = (job: Job) => {
-    setSelectedJob(job)
-    setShowJobModal(true)
+    router.push(`/engineer-dashboard/job/${job.key}`)
   }
 
   if (loading) {
