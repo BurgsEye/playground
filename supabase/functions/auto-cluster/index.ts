@@ -23,7 +23,10 @@ interface ClusterResult {
 interface AutoClusteringOptions {
   tickets: Ticket[]
   radius_km: number
-  cluster_size: number
+  cluster_size?: number // Optional for backward compatibility
+  min_cluster_size?: number
+  max_cluster_size?: number
+  precise_cluster_size?: number // For exactly N jobs
   prioritize_high_priority?: boolean
 }
 
@@ -60,8 +63,35 @@ function autoClusterTickets(options: AutoClusteringOptions): AutoClusteringResul
     tickets,
     radius_km,
     cluster_size,
+    min_cluster_size,
+    max_cluster_size,
+    precise_cluster_size,
     prioritize_high_priority = true
   } = options
+
+  // Determine cluster size parameters
+  let minSize: number
+  let maxSize: number
+  let isPrecise: boolean = false
+
+  if (precise_cluster_size) {
+    // Precise clustering: exactly N jobs per cluster
+    minSize = precise_cluster_size
+    maxSize = precise_cluster_size
+    isPrecise = true
+  } else if (min_cluster_size && max_cluster_size) {
+    // Min/max clustering
+    minSize = min_cluster_size
+    maxSize = max_cluster_size
+  } else if (cluster_size) {
+    // Backward compatibility: single cluster size
+    minSize = cluster_size
+    maxSize = cluster_size
+  } else {
+    // Default values
+    minSize = 2
+    maxSize = 5
+  }
 
   const clusters: ClusterResult[] = []
   const usedTickets = new Set<string>()
@@ -96,8 +126,8 @@ function autoClusterTickets(options: AutoClusteringOptions): AutoClusteringResul
       return distance <= radius_km
     })
 
-    // If we have enough tickets for a cluster
-    if (nearbyTickets.length >= 2) {
+    // Check if we have enough tickets for a cluster
+    if (nearbyTickets.length >= minSize) {
       // Sort by distance from seed ticket
       nearbyTickets.sort((a, b) => {
         const distA = haversineDistance(seedTicket.lat, seedTicket.lng, a.lat, a.lng)
@@ -105,8 +135,26 @@ function autoClusterTickets(options: AutoClusteringOptions): AutoClusteringResul
         return distA - distB
       })
 
-      // Take up to cluster_size tickets
-      const clusterTickets = nearbyTickets.slice(0, cluster_size)
+      let clusterTickets: Ticket[]
+
+      if (isPrecise) {
+        // Precise clustering: take exactly the specified number
+        if (nearbyTickets.length >= precise_cluster_size!) {
+          clusterTickets = nearbyTickets.slice(0, precise_cluster_size!)
+        } else {
+          // Not enough tickets for precise clustering, skip this seed
+          continue
+        }
+      } else {
+        // Min/max clustering: take between min and max
+        const targetSize = Math.min(nearbyTickets.length, maxSize)
+        clusterTickets = nearbyTickets.slice(0, targetSize)
+        
+        // Only create cluster if we meet minimum size requirement
+        if (clusterTickets.length < minSize) {
+          continue
+        }
+      }
       
       // Mark tickets as used
       clusterTickets.forEach(ticket => usedTickets.add(ticket.id))
@@ -159,11 +207,38 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { tickets, radius_km, cluster_size, prioritize_high_priority } = await req.json() as AutoClusteringOptions;
+    const { 
+      tickets, 
+      radius_km, 
+      cluster_size, 
+      min_cluster_size, 
+      max_cluster_size, 
+      precise_cluster_size, 
+      prioritize_high_priority 
+    } = await req.json() as AutoClusteringOptions;
 
     // Input validation
-    if (!tickets || !Array.isArray(tickets) || tickets.length === 0 || !radius_km || !cluster_size) {
-      return new Response(JSON.stringify({ error: 'Invalid input: tickets, radius_km, and cluster_size are required.' }), {
+    if (!tickets || !Array.isArray(tickets) || tickets.length === 0 || !radius_km) {
+      return new Response(JSON.stringify({ error: 'Invalid input: tickets and radius_km are required.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    // Validate cluster size parameters
+    const hasClusterSize = cluster_size !== undefined
+    const hasMinMax = min_cluster_size !== undefined && max_cluster_size !== undefined
+    const hasPrecise = precise_cluster_size !== undefined
+
+    if (!hasClusterSize && !hasMinMax && !hasPrecise) {
+      return new Response(JSON.stringify({ error: 'Invalid input: must specify either cluster_size, (min_cluster_size and max_cluster_size), or precise_cluster_size.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    if (hasMinMax && min_cluster_size! > max_cluster_size!) {
+      return new Response(JSON.stringify({ error: 'Invalid input: min_cluster_size must be less than or equal to max_cluster_size.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
       });
@@ -187,15 +262,45 @@ serve(async (req: Request) => {
       });
     }
 
-    if (cluster_size < 2 || cluster_size > 10) {
-      return new Response(JSON.stringify({ error: 'Invalid cluster_size: must be between 2 and 10.' }), {
+    // Validate cluster size parameters
+    if (cluster_size !== undefined && (cluster_size < 2 || cluster_size > 20)) {
+      return new Response(JSON.stringify({ error: 'Invalid cluster_size: must be between 2 and 20.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    if (min_cluster_size !== undefined && (min_cluster_size < 2 || min_cluster_size > 20)) {
+      return new Response(JSON.stringify({ error: 'Invalid min_cluster_size: must be between 2 and 20.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    if (max_cluster_size !== undefined && (max_cluster_size < 2 || max_cluster_size > 20)) {
+      return new Response(JSON.stringify({ error: 'Invalid max_cluster_size: must be between 2 and 20.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    if (precise_cluster_size !== undefined && (precise_cluster_size < 2 || precise_cluster_size > 20)) {
+      return new Response(JSON.stringify({ error: 'Invalid precise_cluster_size: must be between 2 and 20.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
       });
     }
 
     // Run clustering algorithm
-    const result = autoClusterTickets({ tickets, radius_km, cluster_size, prioritize_high_priority });
+    const result = autoClusterTickets({ 
+      tickets, 
+      radius_km, 
+      cluster_size, 
+      min_cluster_size, 
+      max_cluster_size, 
+      precise_cluster_size, 
+      prioritize_high_priority 
+    });
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

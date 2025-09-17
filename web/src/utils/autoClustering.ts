@@ -24,7 +24,10 @@ export interface ClusterResult {
 export interface AutoClusteringOptions {
   tickets: Ticket[]
   radius_km: number
-  cluster_size: number
+  cluster_size?: number // Optional for backward compatibility
+  min_cluster_size?: number
+  max_cluster_size?: number
+  precise_cluster_size?: number // For exactly N jobs
   prioritize_high_priority?: boolean
 }
 
@@ -47,8 +50,35 @@ export function autoClusterTickets(options: AutoClusteringOptions): AutoClusteri
     tickets,
     radius_km,
     cluster_size,
+    min_cluster_size,
+    max_cluster_size,
+    precise_cluster_size,
     prioritize_high_priority = true
   } = options
+
+  // Determine cluster size parameters
+  let minSize: number
+  let maxSize: number
+  let isPrecise: boolean = false
+
+  if (precise_cluster_size) {
+    // Precise clustering: exactly N jobs per cluster
+    minSize = precise_cluster_size
+    maxSize = precise_cluster_size
+    isPrecise = true
+  } else if (min_cluster_size && max_cluster_size) {
+    // Min/max clustering
+    minSize = min_cluster_size
+    maxSize = max_cluster_size
+  } else if (cluster_size) {
+    // Backward compatibility: single cluster size
+    minSize = cluster_size
+    maxSize = cluster_size
+  } else {
+    // Default values
+    minSize = 2
+    maxSize = 5
+  }
 
   const clusters: ClusterResult[] = []
   const usedTickets = new Set<string>()
@@ -83,8 +113,8 @@ export function autoClusterTickets(options: AutoClusteringOptions): AutoClusteri
       return distance <= radius_km
     })
 
-    // If we have enough tickets for a cluster
-    if (nearbyTickets.length >= 2) {
+    // Check if we have enough tickets for a cluster
+    if (nearbyTickets.length >= minSize) {
       // Sort by distance from seed ticket
       nearbyTickets.sort((a, b) => {
         const distA = haversineDistance(seedTicket.lat, seedTicket.lng, a.lat, a.lng)
@@ -92,8 +122,26 @@ export function autoClusterTickets(options: AutoClusteringOptions): AutoClusteri
         return distA - distB
       })
 
-      // Take up to cluster_size tickets
-      const clusterTickets = nearbyTickets.slice(0, cluster_size)
+      let clusterTickets: Ticket[]
+
+      if (isPrecise) {
+        // Precise clustering: take exactly the specified number
+        if (nearbyTickets.length >= precise_cluster_size!) {
+          clusterTickets = nearbyTickets.slice(0, precise_cluster_size!)
+        } else {
+          // Not enough tickets for precise clustering, skip this seed
+          continue
+        }
+      } else {
+        // Min/max clustering: take between min and max
+        const targetSize = Math.min(nearbyTickets.length, maxSize)
+        clusterTickets = nearbyTickets.slice(0, targetSize)
+        
+        // Only create cluster if we meet minimum size requirement
+        if (clusterTickets.length < minSize) {
+          continue
+        }
+      }
       
       // Mark tickets as used
       clusterTickets.forEach(ticket => usedTickets.add(ticket.id))
