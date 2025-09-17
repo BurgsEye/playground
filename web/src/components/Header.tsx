@@ -29,6 +29,9 @@ export default function Header() {
           </div>
           
           <nav className="flex items-center space-x-6">
+            <Link href="/engineer-dashboard" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+              Engineer Dashboard
+            </Link>
             <Link href="/jira-config" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
               JIRA Config
             </Link>

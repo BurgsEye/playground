@@ -57,15 +57,22 @@ export default function AutoClusteringPage() {
   const [jiraTickets, setJiraTickets] = useState<Ticket[]>([])
   const [jiraLoading, setJiraLoading] = useState(false)
 
+  // Clear all results and data when switching sources
+  const clearResults = () => {
+    setClusteringResult(null)
+    setSelectedCluster(null)
+    setError(null)
+  }
+
   // Fetch JIRA tickets
   const fetchJiraTickets = async () => {
     setJiraLoading(true)
     setError(null)
+    clearResults() // Clear previous results when fetching new data
     
     try {
-      const { data, error } = await supabase.functions.invoke('jira-integration', {
+      const { data, error } = await supabase.functions.invoke('jira-integration/tickets', {
         body: {
-          action: 'get-tickets',
           jiraUrl: 'https://westbase.atlassian.net',
           email: 'tf@westbase.io',
           apiToken: 'REMOVED',
@@ -108,6 +115,7 @@ export default function AutoClusteringPage() {
   const runClustering = async () => {
     setIsRunning(true)
     setError(null)
+    setClusteringResult(null) // Clear previous results
 
     try {
       console.log('🚀 Calling Edge Function...')
@@ -164,20 +172,21 @@ export default function AutoClusteringPage() {
           </ol>
         </nav>
 
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Auto Clustering</h1>
-          <p className="text-gray-600">Automatically group tickets using intelligent algorithms based on geographic proximity and priority</p>
-        </div>
-
-        {/* Data Source Toggle - Top Right Corner */}
-        <div className="absolute top-4 right-4 z-10">
+        {/* Data Source Toggle - Inline with page header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-2">Auto Clustering</h1>
+            <p className="text-gray-600">Automatically group tickets using intelligent algorithms based on geographic proximity and priority</p>
+          </div>
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
             <div className="flex items-center space-x-3">
               <span className="text-sm font-medium text-gray-700">Data Source:</span>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setUseLiveData(false)}
+                  onClick={() => {
+                    setUseLiveData(false)
+                    clearResults() // Clear results when switching
+                  }}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     !useLiveData 
                       ? 'bg-blue-600 text-white' 
@@ -187,7 +196,10 @@ export default function AutoClusteringPage() {
                   Mock Data
                 </button>
                 <button
-                  onClick={() => setUseLiveData(true)}
+                  onClick={() => {
+                    setUseLiveData(true)
+                    clearResults() // Clear results when switching
+                  }}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     useLiveData 
                       ? 'bg-green-600 text-white' 
