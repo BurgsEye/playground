@@ -75,7 +75,7 @@ function HomeContent() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Engineer Dashboard Card */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="p-6">
@@ -116,24 +116,24 @@ function HomeContent() {
                 <div className="ml-4 flex-1">
                   <h3 className="text-lg font-medium text-gray-900 mb-2">JIRA Integration</h3>
                   <p className="text-gray-600 text-sm mb-4">
-                    Connect to your JIRA instance to automatically fetch tickets and create job clusters.
+                    Connect to JIRA to fetch tickets and create job clusters.
                   </p>
-                  <div className="flex space-x-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Link
                       href="/jira-config"
-                      className="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 transition-colors"
+                      className="inline-flex items-center justify-center px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 transition-colors"
                     >
-                      Configure JIRA
-                      <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      Configure
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
                     </Link>
                     <Link
                       href="/jira-test"
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                      className="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
                     >
-                      Test Functions
-                      <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      Test
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </Link>
@@ -153,7 +153,7 @@ function HomeContent() {
                 <div className="ml-4 flex-1">
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Auto Clustering</h3>
                   <p className="text-gray-600 text-sm mb-4">
-                    Automatically group tickets using smart algorithms based on geographic proximity and priority levels. Perfect for optimizing engineer routes.
+                    Group tickets using smart algorithms based on geographic proximity and priority levels.
                   </p>
                   <Link
                     href="/auto-clustering"
@@ -180,7 +180,7 @@ function HomeContent() {
                         <div className="ml-4 flex-1">
                           <h3 className="text-lg font-medium text-gray-900 mb-2">Manual Clustering</h3>
                           <p className="text-gray-600 text-sm mb-4">
-                            Interactive map-based clustering with manual ticket selection, radius control, and real-time visual feedback for precise cluster creation.
+                            Interactive map-based clustering with manual ticket selection and radius control.
                           </p>
                           <Link
                             href="/manual-clustering"
