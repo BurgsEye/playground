@@ -2,10 +2,25 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase'
 import AuthGuard from '@/components/AuthGuard'
 import Header from '@/components/Header'
+import dynamic from 'next/dynamic'
 import { generateRealisticClusters } from '@/data/airbMockData'
+
+// Dynamic import for the map component to prevent SSR issues
+const EngineerDashboardMap = dynamic(() => import('@/components/EngineerDashboardMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+        <p className="text-gray-600">Loading map...</p>
+      </div>
+    </div>
+  )
+})
 
 interface Job {
   id: string
@@ -49,10 +64,26 @@ interface Cluster {
 }
 
 export default function EngineerDashboard() {
+  const router = useRouter()
   const [clusters, setClusters] = useState<Cluster[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
+  const [expandedMaps, setExpandedMaps] = useState<Set<string>>(new Set())
+
+  const toggleMap = (clusterId: string) => {
+    const newExpanded = new Set(expandedMaps)
+    if (newExpanded.has(clusterId)) {
+      newExpanded.delete(clusterId)
+    } else {
+      newExpanded.add(clusterId)
+    }
+    setExpandedMaps(newExpanded)
+  }
+
+  const handleClusterClick = (cluster: Cluster) => {
+    router.push(`/engineer-dashboard/cluster/${cluster.key}`)
+  }
 
   const fetchEngineerClusters = async () => {
     if (!user?.email) return
@@ -254,8 +285,11 @@ export default function EngineerDashboard() {
           ) : (
             <div className="space-y-6">
               {clusters.map((cluster) => (
-                <div key={cluster.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="px-6 py-4 border-b border-gray-200">
+                <div key={cluster.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div 
+                    className="px-6 py-4 border-b border-gray-200 cursor-pointer"
+                    onClick={() => handleClusterClick(cluster)}
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">{cluster.summary}</h3>
@@ -265,9 +299,19 @@ export default function EngineerDashboard() {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(cluster.status)}`}>
                           {cluster.status}
                         </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleMap(cluster.id)
+                          }}
+                          className="bg-gray-100 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-200 font-medium transition-colors text-sm"
+                        >
+                          {expandedMaps.has(cluster.id) ? 'Hide Map' : 'Show Map'}
+                        </button>
                         <Link
                           href={`/engineer-dashboard/cluster/${cluster.key}`}
                           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium transition-colors"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           View Details
                         </Link>
@@ -305,6 +349,20 @@ export default function EngineerDashboard() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Collapsed Map Section */}
+                  {expandedMaps.has(cluster.id) && (
+                    <div className="px-6 py-4 border-t border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Cluster Map</h4>
+                      <div className="h-64 rounded-lg overflow-hidden">
+                        <EngineerDashboardMap
+                          clusters={[cluster]}
+                          selectedCluster={null}
+                          onClusterClick={() => {}}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
