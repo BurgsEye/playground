@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/utils/supabase'
 import AuthGuard from '@/components/AuthGuard'
 import Header from '@/components/Header'
-import { generateMockAirbInstallationRequests, generateMockAirbCluster, convertToJob } from '@/data/airbMockData'
+import { generateRealisticClusters } from '@/data/airbMockData'
 
 interface Job {
   id: string
@@ -102,21 +102,10 @@ export default function EngineerDashboard() {
           scheduledDate: issue.fields.created
         }))
 
-        // If no clusters, create mock clusters with installation requests
-        if (transformedClusters.length === 0) {
-          // Generate realistic mock data based on real JIRA field options
-          const mockRequests = generateMockAirbInstallationRequests(8)
-          
-          // Create Newport cluster
-          const newportRequests = mockRequests.slice(0, 4)
-          const newportCluster = generateMockAirbCluster('1', 'Newport East Jobs', newportRequests)
-          
-          // Create Cardiff cluster  
-          const cardiffRequests = mockRequests.slice(4, 8)
-          const cardiffCluster = generateMockAirbCluster('2', 'Cardiff City Centre', cardiffRequests)
-          
-          transformedClusters.push(newportCluster, cardiffCluster)
-        }
+        // Always use mock data for now (until we have real clusters)
+        // Generate realistic clusters with proper geographic distribution
+        const mockClusters = generateRealisticClusters()
+        transformedClusters.push(...mockClusters)
 
         setClusters(transformedClusters)
       } else {

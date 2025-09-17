@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/utils/supabase'
 import AuthGuard from '@/components/AuthGuard'
 import Header from '@/components/Header'
+import { generateRealisticClusters } from '@/data/airbMockData'
 
 interface Job {
   id: string
@@ -63,90 +64,12 @@ export default function ClusterDetailPage() {
     setError(null)
 
     try {
-      // Fetch cluster details
-      const { data: clusterData, error: clusterError } = await supabase.functions.invoke('jira-integration/search-tickets', {
-        body: {
-          jiraUrl: 'https://westbase.atlassian.net',
-          email: 'tf@westbase.io',
-          apiToken: 'REMOVED',
-          jql: `key = "${clusterKey}" AND issuetype = "AIRB - Job Cluster"`
-        }
-      })
-
-      if (clusterError) {
-        throw new Error(`Cluster fetch error: ${clusterError.message}`)
-      }
-
-      if (clusterData.success && clusterData.issues.length > 0) {
-        const clusterIssue = clusterData.issues[0]
-        
-        // For now, create mock jobs - in production this would fetch linked jobs
-        const mockJobs: Job[] = [
-          {
-            id: '1',
-            key: 'AIRB-13',
-            summary: 'Install networking equipment - Site 1',
-            status: 'Scheduled',
-            priority: 'Medium',
-            location: {
-              latitude: 51.5756602,
-              longitude: -2.9979936,
-              address: '19, Cape Lookout Walk, Pillgwenlly, Newport, Wales, NP20 2SG, United Kingdom'
-            },
-            airbFields: {
-              installationType: 'Silver',
-              externalCPE: 'Wave Nano',
-              internalCPE: 'UDR7',
-              wifiMesh: 'Domestic (<2 APs)',
-              clusterReady: 'Yes',
-              jobCompleteStatus: 'Scheduled',
-              preferredWindow: 'Morning',
-              additionalNotes: 'Customer prefers morning appointments'
-            },
-            createdAt: '2025-09-12T17:04:07.680+0100'
-          },
-          {
-            id: '2',
-            key: 'AIRB-12',
-            summary: 'Install networking equipment - Site 2',
-            status: 'Scheduled',
-            priority: 'Medium',
-            location: {
-              latitude: 51.5756602,
-              longitude: -2.9979936,
-              address: '19, Cape Lookout Walk, Pillgwenlly, Newport, Wales, NP20 2SG, United Kingdom'
-            },
-            airbFields: {
-              installationType: 'Gold',
-              externalCPE: 'Wave Pro',
-              internalCPE: 'UDR9',
-              wifiMesh: 'Commercial (2+ APs)',
-              clusterReady: 'Yes',
-              jobCompleteStatus: 'Scheduled',
-              preferredWindow: 'Afternoon',
-              additionalNotes: 'High priority customer'
-            },
-            createdAt: '2025-09-12T17:03:50.226+0100'
-          }
-        ]
-
-        const cluster: Cluster = {
-          id: clusterIssue.id,
-          key: clusterIssue.key,
-          summary: clusterIssue.fields.summary,
-          status: clusterIssue.fields.status.name,
-          jobs: mockJobs,
-          location: {
-            latitude: 51.5756602,
-            longitude: -2.9979936,
-            address: 'Multiple locations'
-          },
-          totalJobs: mockJobs.length,
-          completedJobs: mockJobs.filter(job => job.status === 'Completed').length,
-          scheduledDate: clusterIssue.fields.created
-        }
-
-        setCluster(cluster)
+      // For now, use mock data - in production this would fetch from JIRA
+      const mockClusters = generateRealisticClusters()
+      const foundCluster = mockClusters.find(c => c.key === clusterKey)
+      
+      if (foundCluster) {
+        setCluster(foundCluster)
       } else {
         throw new Error('Cluster not found')
       }

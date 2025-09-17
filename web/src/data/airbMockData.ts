@@ -140,6 +140,30 @@ const CARDIFF_ADDRESSES = [
   }
 ];
 
+// Bristol area addresses for more geographic diversity
+const BRISTOL_ADDRESSES = [
+  {
+    coordinates: [51.454513, -2.587910] as [number, number],
+    street: 'Park Street',
+    streetNumber: '25',
+    city: 'Bristol',
+    stateOrProvince: 'England',
+    postalCode: 'BS1 5NG',
+    country: 'United Kingdom',
+    displayName: '25, Park Street, Bristol, England, BS1 5NG, United Kingdom'
+  },
+  {
+    coordinates: [51.450000, -2.600000] as [number, number],
+    street: 'Broadmead',
+    streetNumber: '12',
+    city: 'Bristol',
+    stateOrProvince: 'England',
+    postalCode: 'BS1 3HA',
+    country: 'United Kingdom',
+    displayName: '12, Broadmead, Bristol, England, BS1 3HA, United Kingdom'
+  }
+];
+
 // Real data from AIRB-13 for reference
 export const REAL_AIRB_13_DATA: AirbInstallationRequest = {
   id: '104627',
@@ -170,7 +194,7 @@ export const REAL_AIRB_13_DATA: AirbInstallationRequest = {
 
 // Generate random mock data
 export function generateMockAirbInstallationRequest(id: number): AirbInstallationRequest {
-  const allAddresses = [...NEWPORT_ADDRESSES, ...CARDIFF_ADDRESSES];
+  const allAddresses = [...NEWPORT_ADDRESSES, ...CARDIFF_ADDRESSES, ...BRISTOL_ADDRESSES];
   const randomAddress = allAddresses[Math.floor(Math.random() * allAddresses.length)];
   
   const statuses = ['Not Completed', 'Under Review', 'Completed', 'In Progress'];
@@ -265,4 +289,40 @@ export function generateMockAirbCluster(id: string, name: string, requests: Airb
     progress,
     scheduledDate: requests[0]?.created
   };
+}
+
+// Generate realistic clusters with geographic distribution
+export function generateRealisticClusters() {
+  const allRequests = generateMockAirbInstallationRequests(12);
+  
+  // Group requests by geographic proximity (simplified)
+  const newportRequests = allRequests.slice(0, 4).map((req, i) => ({
+    ...req,
+    customFields: {
+      ...req.customFields,
+      geoData: NEWPORT_ADDRESSES[i % NEWPORT_ADDRESSES.length]
+    }
+  }));
+  
+  const cardiffRequests = allRequests.slice(4, 8).map((req, i) => ({
+    ...req,
+    customFields: {
+      ...req.customFields,
+      geoData: CARDIFF_ADDRESSES[i % CARDIFF_ADDRESSES.length]
+    }
+  }));
+  
+  const bristolRequests = allRequests.slice(8, 12).map((req, i) => ({
+    ...req,
+    customFields: {
+      ...req.customFields,
+      geoData: BRISTOL_ADDRESSES[i % BRISTOL_ADDRESSES.length]
+    }
+  }));
+  
+  return [
+    generateMockAirbCluster('1', 'Newport East Jobs', newportRequests),
+    generateMockAirbCluster('2', 'Cardiff City Centre', cardiffRequests),
+    generateMockAirbCluster('3', 'Bristol West Cluster', bristolRequests)
+  ];
 }
